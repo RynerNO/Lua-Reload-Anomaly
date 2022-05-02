@@ -1,0 +1,155 @@
+--[[
+Weapon reload moved from engine to Lua, making mags mods should be easier now    
+GitHub: https://github.com/RynerNO
+Copyright (C) 2022 RynerNO
+This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 Unported License
+https://creativecommons.org/licenses/by-nc-sa/4.0/
+--]]
+
+-- "enum" of weapon states from engine that I will need
+local EWeaponStates = {
+        eIdle = 0,
+		eShowing = 1,
+		eReload = 6,
+		eMisfire = 8,
+		eMagEmpty = 9,		
+}
+
+function on_game_start()
+	RegisterScriptCallback("actor_on_hud_animation_end", actor_on_hud_animation_end)
+end
+
+
+local reloadWpn = nil
+local sndObj = nil
+
+function reload(binder, wpn, isJammed)
+    rynerno_helper.log(isJammed)
+    if(isJammed) then
+        wpn:switch_state(EWeaponStates.eReload)
+        wpn:switch_state(EWeaponStates.eIdle)
+        return true
+    end
+    local currentAmmoSection = getCurrentAmmoSection(wpn);
+    local ammoElapsed = wpn:get_ammo_in_magazine();
+    local magSize = tonumber(ini_sys:r_string_ex(wpn:section(), "ammo_mag_size"))
+    if(ammoElapsed == magSize) then
+        return true
+    end
+    reloadWpn = wpn
+    rynerno_helper.log('START RELOAD')
+    wpn:switch_state(EWeaponStates.eReload)
+    playReloadAnim(wpn, ammoElapsed)
+    
+    
+    
+end
+
+function getCurrentAmmoSection(wpn)
+    local ammo_list = str_explode(ini_sys:r_string_ex(wpn:section(), "ammo_class"), ",");
+    local section_index = tonumber(wpn:get_ammo_type()) + 1;
+    return ammo_list[section_index]
+end
+function findAmmo(sec)
+	if not (sec) then return end
+	local ammo = nil
+	local function itr(a, item)
+		if(item and IsAmmo(item) and item:section() == sec) then
+            if(ammo == nil) then
+                ammo = {}
+            end
+			table.insert(ammo, item)
+		end
+	end
+	db.actor:iterate_inventory(itr, true)
+	return ammo
+end
+
+function playReloadAnim(wpn, ammoElapsed) 
+    local magSize = tonumber(ini_sys:r_string_ex(wpn:section(), "ammo_mag_size"))
+    -- Reload for double barell shotgun
+    if(magSize == 2) then 
+        if(ammoElapsed == 1) then
+            wpn:play_hud_motion("anm_reload_1", true, wpn:get_state(), 1, 0)
+            local snd_reload = ini_sys:r_string_ex(wpn:section(), "snd_reload_1")
+            sndObj = utils_obj.play_sound(snd_reload)
+            return nil
+        else 
+            wpn:play_hud_motion("anm_reload_2", true, wpn:get_state(), 1, 0)
+            local snd_reload = ini_sys:r_string_ex(wpn:section(), "snd_reload")
+            sndObj = utils_obj.play_sound(snd_reload)
+            return nil
+        end
+    end
+    if(ammoElapsed == 0) then
+        wpn:play_hud_motion("anm_reload_empty", true, 3, 1, 0)
+        local snd_reload = ini_sys:r_string_ex(wpn:section(), "snd_reload_empty")
+        sndObj = utils_obj.play_sound(snd_reload)
+       
+     else 
+        wpn:play_hud_motion("anm_reload", true, 3, 1, 0)
+        local snd_reload = ini_sys:r_string_ex(wpn:section(), "snd_reload")
+        sndObj = utils_obj.play_sound(snd_reload)
+    end    
+end
+
+function completeReload(wpn)
+    local currentAmmoSection = getCurrentAmmoSection(wpn);
+    local ammoElapsed = wpn:get_ammo_in_magazine();
+    local magSize = tonumber(ini_sys:r_string_ex(wpn:section(), "ammo_mag_size"))
+
+    local ammoNeed = magSize - ammoElapsed;
+    
+    local avaliableAmmo = findAmmo(currentAmmoSection)
+    if (avaliableAmmo == nil) then
+        return true 
+    end
+    for i=1,#avaliableAmmo do
+        if(ammoNeed == 0) then
+            break;
+        end
+        local ammoCount = avaliableAmmo[i]:ammo_get_count();
+        if(ammoNeed >= ammoCount) then
+            ammoNeed = ammoNeed - ammoCount
+            alife_release_id(avaliableAmmo[i]:id())
+            
+        else
+            avaliableAmmo[i]:ammo_set_count(ammoCount - ammoNeed)
+            ammoNeed = 0
+            break
+        end
+    end
+    if(ammoNeed == 0) then 
+        wpn:set_ammo_elapsed(magSize) 
+    else 
+        wpn:set_ammo_elapsed(magSize - ammoNeed)
+    end
+
+end
+
+
+function actor_on_hud_animation_end(item,section,motion,state,slot)
+	-- Check if item is weapon
+	rynerno_helper.log(motion)
+	if not (IsWeapon(item))	then return end
+	-- Check for reload state
+    if (not reloadWpn or reloadWpn:id() ~= item:id()) then return end
+    if(item:get_state() ~= EWeaponStates.eReload) then return end
+	completeReload(item)
+	rynerno_helper.log('RELOADING FINISHED')
+
+end
+
+-- changed play sound from utils_obj
+function play_sound(path, vol)
+	snd_obj = nil
+	if (not path) or (type(path) ~= "string") then return end
+	
+	snd_obj = sound_object(path)
+	if snd_obj then
+		snd_obj:play(db.actor, 0, sound_object.s2d)
+		--snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, VEC_ZERO, vol or 1)
+		snd_obj.volume = vol or 1
+        return snd_obj
+	end
+end
