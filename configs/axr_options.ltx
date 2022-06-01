@@ -1,12 +1,25 @@
 [character_creation]
+        new_game_azazel_mode             =
+        new_game_campfire_mode           =
+        new_game_character_name          =
+        new_game_conditions_mode         =
         new_game_difficulty              =
         new_game_economy                 =
+        new_game_economy_treasure        =
         new_game_faction                 =
+        new_game_hardcore_mode           =
+        new_game_hardcore_mode_lives     = 1
+        new_game_hardcore_mode_regenerate =
+        new_game_icon                    =
         new_game_loadout                 =
         new_game_map                     =
         new_game_money                   =
+        new_game_opened_routes           =
         new_game_story_mode              =
+        new_game_survival_mode           =
         new_game_test                    =
+        new_game_timer_mode              =
+        new_game_warfare                 =
  
 [global_keybinds]
         debug_demo_record                = DIK_NUMPAD0
@@ -42,7 +55,9 @@
         alife/general/alife_mutant_pop   = 0.75
         alife/general/alife_stalker_pop  = 0.5
         alife/general/dynamic_anomalies  = true
+        alife/general/dynamic_relations  = false
         alife/general/excl_dist          = 75
+        alife/general/heli_spawn         = false
         alife/general/offline_combat     = full
         alife/warfare/army/base_count_modifier = 0
         alife/warfare/army/base_priority = 10
@@ -1058,8 +1073,10 @@
         gameplay/general/corpse_max_count = 5
         gameplay/general/corpse_min_dist = 75
         gameplay/general/hardcore_ai_aim = false
+        gameplay/general/npc_loot_distance = 5
         gameplay/general/outfit_portrait = true
         gameplay/general/release_dropped_items = true
+        gameplay/silent_kills/sk_enabled = false
         other/autosave_timer_new         = 0
         other/debug_error                = false
         other/debug_hud                  = false
@@ -1070,12 +1087,17 @@
         sound/environment/helmet_rain_sound = true
         sound/environment/wind_sound     = true
         sound/general/caption            = none
+        sound/general/master_volume      = 0.5
+        sound/general/music_volume       = 0.5
         sound/radio/display_tracks       = false
         sound/radio/emission_intereferences = true
         sound/radio/playlist_name_1      = OST
         sound/radio/playlist_name_2      = TRX_Special
         sound/radio/underground_intereferences = true
+        sound/radio/zone                 = true
+        video/basic/resolution           = 1024x768
         video/hud/autohide_stamina_bar   = true
+        video/hud/show_enemy_health      = false
         video/hud/show_minimap           = false
         video/hud/show_slots             = true
         video/night/brightness           = slight
@@ -1090,11 +1112,13 @@
         video/player/shoot_effects       = false
         video/player/visor_reflection    = true
         video/weather/clear_occurrence   = 3
+        video/weather/clear_period       = 6
         video/weather/cloudy_occurrence  = 3
         video/weather/foggy_occurrence   = 2
         video/weather/partly_occurrence  = 3
         video/weather/rain_occurrence    = 3
         video/weather/storm_occurrence   = 3
+        video/weather/storm_period       = 4
  
 [temp]
         rspec_default                    = true

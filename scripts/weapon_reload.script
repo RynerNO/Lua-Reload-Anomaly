@@ -17,6 +17,7 @@ local EWeaponStates = {
 
 function on_game_start()
 	RegisterScriptCallback("actor_on_hud_animation_end", actor_on_hud_animation_end)
+    RegisterScriptCallback("actor_on_weapon_lower", actor_on_weapon_lower)
 end
 
 
@@ -72,24 +73,24 @@ function playReloadAnim(wpn, ammoElapsed)
         if(ammoElapsed == 1) then
             wpn:play_hud_motion("anm_reload_1", true, wpn:get_state(), 1, 0)
             local snd_reload = ini_sys:r_string_ex(wpn:section(), "snd_reload_1")
-            sndObj = utils_obj.play_sound(snd_reload)
+            sndObj = play_sound(snd_reload, wpn)
             return nil
         else 
             wpn:play_hud_motion("anm_reload_2", true, wpn:get_state(), 1, 0)
             local snd_reload = ini_sys:r_string_ex(wpn:section(), "snd_reload")
-            sndObj = utils_obj.play_sound(snd_reload)
+            sndObj = play_sound(snd_reload, wpn)
             return nil
         end
     end
     if(ammoElapsed == 0) then
         wpn:play_hud_motion("anm_reload_empty", true, 3, 1, 0)
-        local snd_reload = ini_sys:r_string_ex(wpn:section(), "snd_reload_empty")
-        sndObj = utils_obj.play_sound(snd_reload)
+        local snd_reload = ini_sys:r_string_ex(wpn:section(), "snd_reload_empty") or ini_sys:r_string_ex(wpn:section(), "snd_reload")
+        sndObj = play_sound(snd_reload, wpn)
        
      else 
         wpn:play_hud_motion("anm_reload", true, 3, 1, 0)
         local snd_reload = ini_sys:r_string_ex(wpn:section(), "snd_reload")
-        sndObj = utils_obj.play_sound(snd_reload)
+        sndObj = play_sound(snd_reload, wpn)
     end    
 end
 
@@ -129,8 +130,11 @@ end
 
 
 function actor_on_hud_animation_end(item,section,motion,state,slot)
-	-- Check if item is weapon
-	rynerno_helper.log(motion)
+	
+	if(snd_obj) then 
+        snd_obj:stop()
+    end
+    -- Check if item is weapon
 	if not (IsWeapon(item))	then return end
 	-- Check for reload state
     if (not reloadWpn or reloadWpn:id() ~= item:id()) then return end
@@ -140,16 +144,24 @@ function actor_on_hud_animation_end(item,section,motion,state,slot)
 
 end
 
+
+function actor_on_weapon_lower()
+    if(snd_obj) then 
+        snd_obj:stop()
+    end
+end
+
 -- changed play sound from utils_obj
-function play_sound(path, vol)
+function play_sound(path, wpn)
 	snd_obj = nil
+    if(not wpn) then return end
 	if (not path) or (type(path) ~= "string") then return end
 	
 	snd_obj = sound_object(path)
 	if snd_obj then
-		snd_obj:play(db.actor, 0, sound_object.s2d)
+		snd_obj:play(wpn, 0, sound_object.s2d)
 		--snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, VEC_ZERO, vol or 1)
-		snd_obj.volume = vol or 1
+		snd_obj.volume = 1
         return snd_obj
 	end
 end
