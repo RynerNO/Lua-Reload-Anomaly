@@ -23,17 +23,23 @@ end
 
 local reloadWpn = nil
 local sndObj = nil
-
+local disable = false
 function reload(binder, wpn, isJammed)
+    if(disable) then return end
     rynerno_helper.log(isJammed)
     if(isJammed) then
         wpn:switch_state(EWeaponStates.eReload)
         wpn:switch_state(EWeaponStates.eIdle)
         return true
     end
-    local currentAmmoSection = getCurrentAmmoSection(wpn);
+
     local ammoElapsed = wpn:get_ammo_in_magazine();
     local magSize = tonumber(ini_sys:r_string_ex(wpn:section(), "ammo_mag_size"))
+    local avaliableAmmo = getAmmo(wpn)
+
+    if (avaliableAmmo == nil) then
+        return false
+    end
     if(ammoElapsed == magSize) then
         return true
     end
@@ -42,15 +48,25 @@ function reload(binder, wpn, isJammed)
     wpn:switch_state(EWeaponStates.eReload)
     playReloadAnim(wpn, ammoElapsed)
     
-    
-    
+
 end
 
-function getCurrentAmmoSection(wpn)
+function getAmmo(wpn)
+    if not (wpn) or (not IsWeapon(wpn)) then return end
     local ammo_list = str_explode(ini_sys:r_string_ex(wpn:section(), "ammo_class"), ",");
     local section_index = tonumber(wpn:get_ammo_type()) + 1;
-    return ammo_list[section_index]
+    local ammo = findAmmo(ammo_list[section_index])
+    if(ammo == nil) then
+        for i=1, #ammo_list do
+            if(not (i == section_index)) then
+                ammo = findAmmo(ammo_list[i])
+            end
+            if(ammo) then break end;
+        end
+    end
+    return ammo;
 end
+
 function findAmmo(sec)
 	if not (sec) then return end
 	local ammo = nil
@@ -95,16 +111,24 @@ function playReloadAnim(wpn, ammoElapsed)
 end
 
 function completeReload(wpn)
-    local currentAmmoSection = getCurrentAmmoSection(wpn);
     local ammoElapsed = wpn:get_ammo_in_magazine();
     local magSize = tonumber(ini_sys:r_string_ex(wpn:section(), "ammo_mag_size"))
-
-    local ammoNeed = magSize - ammoElapsed;
+    local avaliableAmmo = getAmmo(wpn)
     
-    local avaliableAmmo = findAmmo(currentAmmoSection)
+
     if (avaliableAmmo == nil) then
         return true 
     end
+    local ammo_list = str_explode(ini_sys:r_string_ex(wpn:section(), "ammo_class"), ",");
+    local section_index = tonumber(wpn:get_ammo_type()) + 1;
+    local ammoNeed = 0
+    if(ammo_list[section_index] == avaliableAmmo[1]:section()) then
+        ammoNeed = magSize - ammoElapsed;
+    else
+        ammoNeed = magSize
+        wpn:unload_magazine(true)
+    end
+
     for i=1,#avaliableAmmo do
         if(ammoNeed == 0) then
             break;
@@ -120,6 +144,9 @@ function completeReload(wpn)
             break
         end
     end
+    local ammo_list = str_explode(ini_sys:r_string_ex(wpn:section(), "ammo_class"), ",");
+    local newAmmoType = rynerno_helper.indexOf(ammo_list, avaliableAmmo[1]:section());
+    wpn:set_ammo_type(newAmmoType - 1);
     if(ammoNeed == 0) then 
         wpn:set_ammo_elapsed(magSize) 
     else 
@@ -160,7 +187,6 @@ function play_sound(path, wpn)
 	snd_obj = sound_object(path)
 	if snd_obj then
 		snd_obj:play(wpn, 0, sound_object.s2d)
-		--snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, VEC_ZERO, vol or 1)
 		snd_obj.volume = 1
         return snd_obj
 	end
