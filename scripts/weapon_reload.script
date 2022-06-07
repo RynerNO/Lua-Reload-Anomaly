@@ -23,6 +23,9 @@ end
 
 local reloadWpn = nil
 local sndObj = nil
+
+
+--disable reloading, weapons like grenade launchers or some shotguns are not affected
 local disable = false
 function reload(binder, wpn, isJammed)
     if(disable) then return end
@@ -32,7 +35,7 @@ function reload(binder, wpn, isJammed)
         wpn:switch_state(EWeaponStates.eIdle)
         return true
     end
-
+    if(wpn:get_state() == EWeaponStates.eReload) then return end;
     local ammoElapsed = wpn:get_ammo_in_magazine();
     local magSize = tonumber(ini_sys:r_string_ex(wpn:section(), "ammo_mag_size"))
     local avaliableAmmo = getAmmo(wpn)
